@@ -100,6 +100,18 @@ type Info struct {
 	// declares a negative one, so it is only used when nothing better
 	// answers.
 	Priority int
+	// MaxParallel is how many of this site's files may be fetched at once,
+	// 0 meaning the plugin has no opinion and the host decides.
+	//
+	// It is a different limit from a format's MaxConns and the two are not
+	// interchangeable: MaxConns bounds the connections spent on ONE file,
+	// MaxParallel bounds how many files are in flight. A site can refuse
+	// the first while allowing the second, and one here does — a second
+	// range request on the same link is refused outright, while two whole
+	// files download side by side without a complaint. Told only the first
+	// limit, a host serialises the entire listing and takes hours over what
+	// the site would have served in a fraction of that.
+	MaxParallel int
 }
 
 // Request is one extraction job. The host passes its HTTP settings down so a
