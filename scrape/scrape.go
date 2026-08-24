@@ -296,6 +296,33 @@ func DedupeURLs(in []string) []string {
 	return out
 }
 
+// reHref matches a link's target however the page quotes it: with double
+// quotes, with single ones, or with none at all.
+var reHref = regexp.MustCompile(`(?i)\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'<>]+))`)
+
+// Hrefs is every link target a page states, in the order it states them.
+//
+// Which quote a site uses is not a detail a plugin should have to know, and
+// assuming one is a fault that hides: a pattern written for double quotes
+// finds every link on a site that uses them and silently none at all on a site
+// that uses single ones, so the plugin reports an empty page rather than an
+// error. One site here states ninety-six posts and answered zero.
+func Hrefs(html string) []string {
+	ms := reHref.FindAllStringSubmatch(html, -1)
+	out := make([]string, 0, len(ms))
+	for _, m := range ms {
+		switch {
+		case m[1] != "":
+			out = append(out, m[1])
+		case m[2] != "":
+			out = append(out, m[2])
+		case m[3] != "":
+			out = append(out, m[3])
+		}
+	}
+	return out
+}
+
 // LastPathSegment is the last part of a URL's path, which is how most sites
 // spell an id.
 func LastPathSegment(rawURL string) string {
