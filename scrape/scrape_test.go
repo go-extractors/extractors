@@ -334,6 +334,10 @@ func TestParseByteSizeRefusesANumberItCannotHold(t *testing.T) {
 func TestIsPreviewURL(t *testing.T) {
 	previews := []string{
 		"https://cdn.example.com/vid/thumb_vid.mp4",
+		// Written without a separator, which is how some sites name the clip
+		// a listing plays under a cursor.
+		"https://cdn.example.com/a/b/vidthumb.mp4",
+		"https://cdn.example.com/a/b/vid_thumb.mp4",
 		"https://cdn.example.com/thumbs/12345.mp4",
 		"https://cdn.example.com/thumb/12345.mp4",
 		"https://cdn.example.com/a/preview.mp4",
