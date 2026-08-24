@@ -259,7 +259,11 @@ func TestParseClock(t *testing.T) {
 		"12:34":   12*time.Minute + 34*time.Second,
 		"1:02:03": time.Hour + 2*time.Minute + 3*time.Second,
 		"0:05":    5 * time.Second,
-		"":        0, "12": 0, "1:2:3:4": 0, "a:b": 0, "-1:00": 0,
+		// Composed for a human: the space between the parts is a
+		// non-breaking one, which is not a space as far as ASCII is
+		// concerned.
+		"1:\u00a002": time.Minute + 2*time.Second,
+		"":           0, "12": 0, "1:2:3:4": 0, "a:b": 0, "-1:00": 0,
 	}
 	for in, want := range cases {
 		if got := ParseClock(in); got != want {
@@ -268,10 +272,17 @@ func TestParseClock(t *testing.T) {
 	}
 }
 
+// gib is what the parser computes for a fractional count of gibibytes: the
+// product truncated, not rounded.
+func gib(n float64) int64 { return int64(n * (1 << 30)) }
+
 func TestParseByteSize(t *testing.T) {
 	cases := map[string]int64{
 		"10.25 MB": 10.25 * (1 << 20), "512 KB": 512 << 10, "1.5 GB": 1.5 * (1 << 30),
 		"3 B": 3, "2 TB": 2 << 40, "4 MiB": 4 << 20,
+		// What a site actually serves: a non-breaking space before the
+		// unit, and the narrow one French typography asks for.
+		"2.9\u00a0GB": gib(2.9), "1.5\u202fGB": gib(1.5),
 		"": 0, "big": 0, "12": 0, "1e9 MB": 0,
 	}
 	for in, want := range cases {

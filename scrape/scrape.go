@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/go-extractors/extractors/extractor"
 	"github.com/go-extractors/extractors/media"
@@ -306,9 +307,25 @@ func LastPathSegment(rawURL string) string {
 	return parts[len(parts)-1]
 }
 
+// normalizeSpaces turns every kind of space into the ordinary one.
+//
+// These parsers read text composed for a human, where a non-breaking space
+// between a number and its unit is not an oddity but the typographic rule, and
+// a narrow one is what French typography asks for. Go's \s covers ASCII only,
+// so "2.9\u00a0GB" — what a site actually serves — would read as no size at
+// all, and a listing would report nothing about how large its files are.
+func normalizeSpaces(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return ' '
+		}
+		return r
+	}, s)
+}
+
 // ParseClock reads the "12:34" or "1:02:03" a listing prints on a thumbnail.
 func ParseClock(s string) time.Duration {
-	parts := strings.Split(strings.TrimSpace(s), ":")
+	parts := strings.Split(strings.TrimSpace(normalizeSpaces(s)), ":")
 	if len(parts) < 2 || len(parts) > 3 {
 		return 0
 	}
@@ -316,7 +333,10 @@ func ParseClock(s string) time.Duration {
 	units = units[len(units)-len(parts):]
 	var total time.Duration
 	for i, p := range parts {
-		n, err := strconv.Atoi(p)
+		// Trimmed part by part: normalizing the spaces leaves them where
+		// they were, and a clock set with a space either side of its
+		// colons is a form a page really prints.
+		n, err := strconv.Atoi(strings.TrimSpace(p))
 		if err != nil || n < 0 {
 			return 0
 		}
@@ -329,7 +349,7 @@ var reByteSize = regexp.MustCompile(`(?i)^\s*([0-9]+(?:\.[0-9]+)?)\s*(B|KB|MB|GB
 
 // ParseByteSize reads the "10.25 MB" a listing prints under a file.
 func ParseByteSize(s string) int64 {
-	m := reByteSize.FindStringSubmatch(strings.TrimSpace(s))
+	m := reByteSize.FindStringSubmatch(strings.TrimSpace(normalizeSpaces(s)))
 	if m == nil {
 		return 0
 	}
