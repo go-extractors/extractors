@@ -47,6 +47,17 @@ type Format struct {
 	Quality  string            `json:"quality,omitempty"` // site label, e.g. "1080p"
 	Note     string            `json:"note,omitempty"`
 	Headers  map[string]string `json:"headers,omitempty"` // per-format request headers
+
+	// MaxConns is the most connections this format's server will serve at
+	// once, 0 meaning the plugin has no opinion and the host decides.
+	//
+	// It is the plugin's to state because it is knowledge of the site, not
+	// of the download: a host splitting a file into range requests cannot
+	// discover the ceiling except by crossing it, and crossing it costs the
+	// whole transfer. One site here serves two connections without a
+	// complaint and refuses at four, so a default of eight fails every time
+	// while a blanket default of one would slow every other site down.
+	MaxConns int `json:"max_conns,omitempty"`
 }
 
 // Label is the human-readable resolution of the format.

@@ -5,7 +5,10 @@
 package media
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -286,5 +289,54 @@ func TestRankingIgnoresUnknownBitratesAndSizes(t *testing.T) {
 	}}
 	if got, _ := m.Select("best"); got.ID != "unsized" {
 		t.Fatalf("Select(best) = %q, want the order left untouched", got.ID)
+	}
+}
+
+// TestFormatSurvivesTheWire covers the boundary a Format actually crosses: a
+// plugin is another process, and what it answers is encoded with gob. A field
+// that does not survive that trip is not a compile error and not a test
+// failure anywhere else — the value simply arrives zero, and the host behaves
+// as though the plugin never said anything.
+//
+// Written by reflection so a field added later is covered without anyone
+// remembering to come back here.
+func TestFormatSurvivesTheWire(t *testing.T) {
+	var sent Format
+	v := reflect.ValueOf(&sent).Elem()
+	for i := range v.NumField() {
+		f := v.Field(i)
+		name := v.Type().Field(i).Name
+		switch f.Kind() {
+		case reflect.String:
+			f.SetString("v-" + name)
+		case reflect.Int, reflect.Int64:
+			f.SetInt(int64(i + 1))
+		case reflect.Float64:
+			f.SetFloat(float64(i) + 1.5)
+		case reflect.Map:
+			f.Set(reflect.ValueOf(map[string]string{"k": name}))
+		default:
+			t.Fatalf("field %s is a %s, which this test does not know how to fill: teach it", name, f.Kind())
+		}
+	}
+
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(sent); err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	var got Format
+	if err := gob.NewDecoder(&buf).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if !reflect.DeepEqual(sent, got) {
+		t.Fatalf("a Format did not survive the wire:\n sent %+v\n got  %+v", sent, got)
+	}
+	// Stated separately: DeepEqual on two zero values would pass while
+	// saying nothing at all.
+	out := reflect.ValueOf(got)
+	for i := range out.NumField() {
+		if out.Field(i).IsZero() {
+			t.Fatalf("field %s arrived zero", out.Type().Field(i).Name)
+		}
 	}
 }
