@@ -5,7 +5,9 @@
 package extractor_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -874,5 +877,58 @@ func TestPlaylistJSONNamesMatchMedia(t *testing.T) {
 	}
 	if strings.Contains(string(bare), "duration") || strings.Contains(string(bare), "size") {
 		t.Errorf("a bare entry states what it does not know: %s", bare)
+	}
+}
+
+// TestInfoSurvivesTheWire covers the boundary a plugin's own description
+// crosses: it is another process, and what it answers is encoded with gob. A
+// field that does not survive arrives zero, which reads exactly like a plugin
+// that chose to say nothing — no error, no failure, and the host quietly
+// decides for itself.
+//
+// That is not hypothetical. A host built before a field existed dropped it on
+// arrival, so a ceiling the plugin stated was never applied and the download
+// it was meant to protect went on failing. Written by reflection, so a field
+// added later is covered without anyone remembering to come back here.
+func TestInfoSurvivesTheWire(t *testing.T) {
+	var sent extractor.Info
+	v := reflect.ValueOf(&sent).Elem()
+	for i := range v.NumField() {
+		f := v.Field(i)
+		name := v.Type().Field(i).Name
+		switch f.Kind() {
+		case reflect.String:
+			f.SetString("v-" + name)
+		case reflect.Int:
+			f.SetInt(int64(i + 1))
+		case reflect.Slice:
+			if f.Type().Elem().Kind() != reflect.String {
+				t.Fatalf("field %s holds %s, which this test does not know how to fill: teach it",
+					name, f.Type().Elem().Kind())
+			}
+			f.Set(reflect.ValueOf([]string{"v-" + name}))
+		default:
+			t.Fatalf("field %s is a %s, which this test does not know how to fill: teach it", name, f.Kind())
+		}
+	}
+
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(sent); err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	var got extractor.Info
+	if err := gob.NewDecoder(&buf).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if !reflect.DeepEqual(sent, got) {
+		t.Fatalf("an Info did not survive the wire:\n sent %+v\n got  %+v", sent, got)
+	}
+	// Stated separately: DeepEqual on two zero values would pass while
+	// saying nothing at all.
+	out := reflect.ValueOf(got)
+	for i := range out.NumField() {
+		if out.Field(i).IsZero() {
+			t.Fatalf("field %s arrived zero", out.Type().Field(i).Name)
+		}
 	}
 }
