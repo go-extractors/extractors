@@ -365,3 +365,51 @@ func ISODuration(s string) time.Duration {
 }
 
 var reISO = regexp.MustCompile(`^P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:([\d.]+)S)?$`)
+
+// rePreviewName matches what a site calls the short animated clip it plays when
+// a cursor rests on a listing, and the still images beside it. These sit in the
+// markup next to the video that page is about — and next to a dozen videos it
+// is not about, which is what makes them worth naming.
+var rePreviewName = regexp.MustCompile(`(?i)(^|[/_.-])(thumb(nail)?s?(_vid)?|preview|sprite|poster|teaser|trailer_?thumb)([/_.-]|$)`)
+
+// rePreviewHost matches the hosts a site keeps its images and previews on,
+// which never serve the video itself.
+var rePreviewHost = regexp.MustCompile(`(?i)^(?:thumb|img|image|ic-|static|preview)`)
+
+// IsPreviewURL reports whether a URL names a preview rather than the video a
+// page is about: the animated clip under a cursor, a sprite sheet of stills, a
+// poster frame.
+//
+// It matters most where a page is scanned rather than read: a listing carries
+// one video and a dozen neighbours' previews, and offering all of them as
+// choices leaves the caller picking by position. Being wrong in one direction
+// costs more than the other — dropping the real video would leave nothing to
+// download — so this matches names that state what they are, not everything
+// small or oddly named.
+func IsPreviewURL(rawURL string) bool {
+	u, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil {
+		return false
+	}
+	if rePreviewHost.MatchString(u.Hostname()) {
+		return true
+	}
+	return rePreviewName.MatchString(u.EscapedPath())
+}
+
+// WithoutPreviews keeps the formats that are not previews. It keeps every one
+// of them when they all look like previews: a page whose video is served from
+// an image host would otherwise leave nothing at all, and something to try is
+// better than a refusal that cannot be acted on.
+func WithoutPreviews(in []media.Format) []media.Format {
+	out := make([]media.Format, 0, len(in))
+	for _, f := range in {
+		if !IsPreviewURL(f.URL) {
+			out = append(out, f)
+		}
+	}
+	if len(out) == 0 {
+		return in
+	}
+	return out
+}
