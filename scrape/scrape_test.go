@@ -327,3 +327,70 @@ func TestParseByteSizeRefusesANumberItCannotHold(t *testing.T) {
 		t.Fatalf("ParseByteSize(\"9 MB\") = %d", got)
 	}
 }
+
+// TestIsPreviewURL pins what counts as a preview. The cases are taken from what
+// sites actually serve: the animated clip a listing plays under a cursor, the
+// sprite sheet of stills a scrubber uses, and the image hosts these live on.
+func TestIsPreviewURL(t *testing.T) {
+	previews := []string{
+		"https://cdn.example.com/vid/thumb_vid.mp4",
+		"https://cdn.example.com/thumbs/12345.mp4",
+		"https://cdn.example.com/thumb/12345.mp4",
+		"https://cdn.example.com/a/preview.mp4",
+		"https://cdn.example.com/a/clip-preview-2.mp4",
+		"https://cdn.example.com/a/sprite.jpg",
+		"https://cdn.example.com/a/poster.jpg",
+		"https://cdn.example.com/a/teaser.mp4",
+		"https://thumb-01.example.com/a/whatever.mp4",
+		"https://img.example.com/a/whatever.mp4",
+		"https://static.example.com/a/whatever.mp4",
+	}
+	for _, u := range previews {
+		if !IsPreviewURL(u) {
+			t.Errorf("IsPreviewURL(%q) = false, want it recognised", u)
+		}
+	}
+	// The other direction matters more: calling the real video a preview
+	// would leave nothing to download.
+	videos := []string{
+		"https://cdn.example.com/vid/zybsmdxxju_1729521085407-video.mp4",
+		"https://cdn.example.com/720p.mp4",
+		"https://cdn.example.com/a/full-movie.mp4",
+		"https://cdn.example.com/a/thumbprint-of-a-crime.mp4", // a word starting with it
+		"https://media.example.com/postproduction.mp4",        // and one containing it
+		"https://cdn.example.com/master.m3u8",
+		"://",
+	}
+	for _, u := range videos {
+		if IsPreviewURL(u) {
+			t.Errorf("IsPreviewURL(%q) = true, want it kept", u)
+		}
+	}
+}
+
+// TestWithoutPreviewsKeepsTheVideo covers the shape a scanned page really has:
+// one video and a dozen previews of its neighbours.
+func TestWithoutPreviewsKeepsTheVideo(t *testing.T) {
+	in := []media.Format{
+		{ID: "a", URL: "https://cdn.example.com/vid/zybsmdxxju-video.mp4"},
+		{ID: "b", URL: "https://cdn.example.com/vid/thumb_vid.mp4"},
+		{ID: "c", URL: "https://cdn.example.com/other/thumb_vid.mp4"},
+	}
+	got := WithoutPreviews(in)
+	if len(got) != 1 || got[0].ID != "a" {
+		t.Fatalf("kept %+v, want only the video", got)
+	}
+
+	// A page whose every candidate looks like a preview keeps them all:
+	// something to try beats a refusal nobody can act on.
+	all := []media.Format{
+		{ID: "x", URL: "https://img.example.com/a/1.mp4"},
+		{ID: "y", URL: "https://img.example.com/a/2.mp4"},
+	}
+	if got := WithoutPreviews(all); len(got) != 2 {
+		t.Fatalf("kept %+v, want everything when nothing else is on offer", got)
+	}
+	if got := WithoutPreviews(nil); len(got) != 0 {
+		t.Fatalf("kept %+v from nothing", got)
+	}
+}
