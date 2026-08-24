@@ -409,3 +409,26 @@ func TestWithoutPreviewsKeepsTheVideo(t *testing.T) {
 		t.Fatalf("kept %+v from nothing", got)
 	}
 }
+
+// TestHrefsReadsEveryQuoteStyle covers the assumption that hides rather than
+// fails: a pattern written for one quote style finds every link on a site that
+// uses it and silently none on a site that does not, so the plugin reports an
+// empty page instead of an error.
+func TestHrefsReadsEveryQuoteStyle(t *testing.T) {
+	page := `<a href="/double.html">a</a>
+		<a href='/single.html'>b</a>
+		<a href=/bare.html>c</a>
+		<a HREF = "/spaced.html">d</a>
+		<a href="">empty</a>
+		<a name="not-a-link">e</a>`
+	got := Hrefs(page)
+	want := []string{"/double.html", "/single.html", "/bare.html", "/spaced.html"}
+	if len(got) != len(want) {
+		t.Fatalf("Hrefs = %q, want %q", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("Hrefs[%d] = %q, want %q", i, got[i], want[i])
+		}
+	}
+}
