@@ -370,7 +370,13 @@ var reISO = regexp.MustCompile(`^P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:([\d.]+)S
 // a cursor rests on a listing, and the still images beside it. These sit in the
 // markup next to the video that page is about — and next to a dozen videos it
 // is not about, which is what makes them worth naming.
-var rePreviewName = regexp.MustCompile(`(?i)(^|[/_.-])(thumb(nail)?s?(_vid)?|preview|sprite|poster|teaser|trailer_?thumb)([/_.-]|$)`)
+var rePreviewName = regexp.MustCompile(
+	`(?i)(^|[/_.-])(vid_?thumb|thumb(nail)?s?(_vid)?|preview|sprite|poster|teaser|trailer_?thumb)([/_.-]|$)`)
+
+// vidthumb is written without a separator on some sites, so it is named here
+// rather than reached by loosening what counts as one: matching "thumb"
+// wherever it appears inside a word would take "thumbprint" with it, and the
+// file a caller actually wants is the one that would go.
 
 // rePreviewHost matches the hosts a site keeps its images and previews on,
 // which never serve the video itself.
