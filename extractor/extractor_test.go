@@ -932,3 +932,66 @@ func TestInfoSurvivesTheWire(t *testing.T) {
 		}
 	}
 }
+
+// TestNothingIsLeftRunningWhenTheHostStops covers the plugin processes a host
+// started outliving it.
+//
+// Only the holder of an Instance could end one, so a caller that stops between
+// opening and closing — a worker taking a signal, most of all — left them
+// running: two were found alive twelve hours after the process that started
+// them had gone, reparented to init, holding their memory and their
+// connections.
+func TestNothingIsLeftRunningWhenTheHostStops(t *testing.T) {
+	host := newHost(t, []string{pluginDir(t)}, nil, "")
+	paths := host.Discover()
+	if len(paths) == 0 {
+		t.Fatal("Discover found nothing")
+	}
+	inst, err := host.Open(paths[0])
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	// Deliberately never closed: that is the case this exists for.
+	if _, err := inst.Match("https://example.com/watch/1"); err != nil {
+		t.Fatalf("the plugin was not answering to begin with: %v", err)
+	}
+
+	if n := host.Shutdown(); n != 1 {
+		t.Errorf("Shutdown ended %d plugins, want the 1 that was open", n)
+	}
+	if _, err := inst.Match("https://example.com/watch/1"); err == nil {
+		t.Error("the plugin answered after the host was stopped, so it is still running")
+	}
+	// Twice is safe, and there is nothing left to end.
+	if n := host.Shutdown(); n != 0 {
+		t.Errorf("a second Shutdown ended %d plugins, want none left", n)
+	}
+}
+
+// TestAnInstanceAlreadyClosedIsNotTheHostsToEnd covers the ordinary path
+// still being the one that counts: a caller that closes what it opened leaves
+// the host with nothing to do.
+func TestAnInstanceAlreadyClosedIsNotTheHostsToEnd(t *testing.T) {
+	host := newHost(t, []string{pluginDir(t)}, nil, "")
+	paths := host.Discover()
+	if len(paths) == 0 {
+		t.Fatal("Discover found nothing")
+	}
+	inst, err := host.Open(paths[0])
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	inst.Close()
+	inst.Close() // twice is safe, and must not double-count
+	if n := host.Shutdown(); n != 0 {
+		t.Errorf("Shutdown ended %d plugins, want none: the caller had closed it", n)
+	}
+}
+
+// TestAHostThatOpenedNothingStopsQuietly covers the host nobody used.
+func TestAHostThatOpenedNothingStopsQuietly(t *testing.T) {
+	host := newHost(t, []string{pluginDir(t)}, nil, "")
+	if n := host.Shutdown(); n != 0 {
+		t.Errorf("Shutdown ended %d plugins on a host that opened none", n)
+	}
+}
