@@ -252,11 +252,9 @@ func (h *Host) track(c *goplugin.Client) {
 	h.live[c] = struct{}{}
 }
 
-// forget drops one that has already been ended.
+// forget drops one that has already been ended. Only Close calls it, and only
+// for an instance holding a client, which Open never builds without a host.
 func (h *Host) forget(c *goplugin.Client) {
-	if h == nil {
-		return
-	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	delete(h.live, c)
