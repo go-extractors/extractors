@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	hclog "github.com/hashicorp/go-hclog"
 	goplugin "github.com/hashicorp/go-plugin"
@@ -33,6 +34,16 @@ type Host struct {
 	logger    hclog.Logger
 	cachePath string
 	index     *pluginIndex
+
+	// live is every plugin process this host has started and not yet been
+	// told to let go of. Without it a host knows nothing of what it has
+	// launched: only the holder of an Instance could end one, so a caller
+	// that stops between opening and closing — a worker taking a signal,
+	// most of all — leaves its plugins running, reparented to init. Two of
+	// them were found alive twelve hours after the process that started
+	// them had gone.
+	mu   sync.Mutex
+	live map[*goplugin.Client]struct{}
 }
 
 // NewHost builds a Host for tool, searching dirs first and then everything
@@ -122,12 +133,16 @@ type Instance struct {
 	Claim  Claim
 	ext    Extractor
 	client *goplugin.Client
+	// host is who to tell when this instance is done with, so a shutdown
+	// does not go looking for a process that has already ended.
+	host *Host
 }
 
 // Close terminates the plugin process. It is safe to call twice.
 func (i *Instance) Close() {
 	if i.client != nil {
 		i.client.Kill()
+		i.host.forget(i.client)
 		i.client = nil
 	}
 }
@@ -213,7 +228,8 @@ func (h *Host) Open(path string) (*Instance, error) {
 	// only ever builds an ExtractorPlugin, whose Client is an Extractor.
 	// The plugin process has no say in this type, so there is no case to
 	// handle here.
-	inst := &Instance{Path: path, ext: raw.(Extractor), client: client}
+	inst := &Instance{Path: path, ext: raw.(Extractor), client: client, host: h}
+	h.track(client)
 	info, err := inst.ext.Info()
 	if err != nil {
 		inst.Close()
@@ -226,6 +242,45 @@ func (h *Host) Open(path string) (*Instance, error) {
 // List launches every discovered plugin just long enough to read its Info. It
 // also fills the index, so listing the plugins is what primes the lookup that
 // later picks one from a URL alone.
+// track records a plugin process this host started.
+func (h *Host) track(c *goplugin.Client) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.live == nil {
+		h.live = map[*goplugin.Client]struct{}{}
+	}
+	h.live[c] = struct{}{}
+}
+
+// forget drops one that has already been ended.
+func (h *Host) forget(c *goplugin.Client) {
+	if h == nil {
+		return
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	delete(h.live, c)
+}
+
+// Shutdown ends every plugin process this host started and still holds, and
+// reports how many there were. It is safe to call twice, and safe to call
+// while instances are still open: each of those is ended too.
+//
+// A caller that opens instances and then stops for a reason of its own has no
+// other way to be sure nothing is left behind, and what is left behind does
+// not die with its parent — it is reparented to init and stays, holding its
+// memory and its connections.
+func (h *Host) Shutdown() int {
+	h.mu.Lock()
+	live := h.live
+	h.live = nil
+	h.mu.Unlock()
+	for c := range live {
+		c.Kill()
+	}
+	return len(live)
+}
+
 func (h *Host) List() ([]Info, error) {
 	var (
 		infos []Info
