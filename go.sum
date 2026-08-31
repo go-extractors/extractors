@@ -11,6 +11,8 @@ github.com/go-streamkit/streamkit v0.0.0-20260823234931-8ca1daa22bf2 h1:JyD+Bp5w
 github.com/go-streamkit/streamkit v0.0.0-20260823234931-8ca1daa22bf2/go.mod h1:zksgTy8u3EgawOOHv8IJAiAfJUoSiZrDULfJxm/U7vY=
 github.com/go-streamkit/streamkit v0.0.0-20260830080043-1e3dbb67ae6f h1:gbOzq1+lw3YWfx+tQZpdXPcb7+pvixYQhm1AP+vzXoQ=
 github.com/go-streamkit/streamkit v0.0.0-20260830080043-1e3dbb67ae6f/go.mod h1:LnBigzfGV6TqCf+ShDtP1YaHUzxTFNbHJGPvLbNA0FY=
+github.com/go-streamkit/streamkit v0.0.0-20260830211645-6fb5f36e5b76 h1:7v/rk8CTABtihjOnijgf14E+ouAbaXgEvrf3HvAU8jE=
+github.com/go-streamkit/streamkit v0.0.0-20260830211645-6fb5f36e5b76/go.mod h1:LnBigzfGV6TqCf+ShDtP1YaHUzxTFNbHJGPvLbNA0FY=
 github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=
 github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
