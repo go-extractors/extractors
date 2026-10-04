@@ -1,6 +1,6 @@
 module github.com/go-extractors/extractors
 
-go 1.26.4
+go 1.27.1
 
 require (
 	github.com/go-streamkit/streamkit v0.0.0-20260910170911-93a4d93ac08a
