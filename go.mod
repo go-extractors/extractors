@@ -1,6 +1,6 @@
 module github.com/go-extractors/extractors
 
-go 1.27.1
+go 1.27.2
 
 require (
 	github.com/go-streamkit/streamkit v0.0.0-20261005015138-80b852cfb766
@@ -19,7 +19,7 @@ require (
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/refraction-networking/utls v1.8.2 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
-	golang.org/x/net v0.59.0 // indirect
+	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
