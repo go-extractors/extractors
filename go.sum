@@ -7,8 +7,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fatih/color v1.13.0 h1:8LOYc1KYPPmyKMuN8QV2DNRWNbLo6LZ0iLs8+mlH53w=
 github.com/fatih/color v1.13.0/go.mod h1:kLAiJbzzSOZDVNGyDpeOxJ47H46qBXwg5ILebYFFOfk=
-github.com/go-streamkit/streamkit v0.0.0-20261101014456-f5338babe05c h1:TMz0S+JALRbkgxJc4xi/Qq3aKAd1BDaWZqo1+fxbuKY=
-github.com/go-streamkit/streamkit v0.0.0-20261101014456-f5338babe05c/go.mod h1:Nr0aytFW04RDSbUogGH5UEjNcOrTjts9vkS+r+JuptU=
+github.com/go-streamkit/streamkit v0.2.0 h1:Cj2KTZVSa7kgSa0mcI/J8VyGLQkP9linajfif6IkLwk=
+github.com/go-streamkit/streamkit v0.2.0/go.mod h1:58dE5UkcgmkLcNu3jRye+z3IYnH5UxM09KaPbwZEN/o=
 github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=
 github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
