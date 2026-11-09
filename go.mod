@@ -3,7 +3,7 @@ module github.com/go-extractors/extractors
 go 1.27.2
 
 require (
-	github.com/go-streamkit/streamkit v0.0.0-20261101014456-f5338babe05c
+	github.com/go-streamkit/streamkit v0.2.0
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-plugin v1.8.0
 )
